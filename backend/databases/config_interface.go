@@ -1,5 +1,5 @@
 package config
 
-type DatabaseConfig interface {
-	LoadConfig(filePath string) (interface{}, error)
+type DatabaseConfigInterface interface {
+	LoadConfig(data []byte) error
 }
