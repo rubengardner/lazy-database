@@ -1,8 +1,8 @@
-package config
+package postgres
 
 import (
 	"encoding/json"
-	"os"
+	"fmt"
 )
 
 type PostgresConfig struct {
@@ -15,17 +15,11 @@ type PostgresConfig struct {
 	SSLMode  string `json:"sslmode"`
 }
 
-func (p *PostgresConfig) LoadConfig(filePath string) (*PostgresConfig, error) {
-	data, err := os.ReadFile(filePath)
-	if err != nil {
-		return nil, err
-	}
-
+func LoadConfig(data []byte) (*PostgresConfig, error) {
 	var config PostgresConfig
-	err = json.Unmarshal(data, &config)
+	err := json.Unmarshal(data, &config)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load config: %v", err)
 	}
-
-	return &config, nil
+	return &config, err
 }
