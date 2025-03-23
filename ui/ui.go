@@ -2,21 +2,26 @@ package main
 
 import (
 	"fmt"
+	"github.com/rubengardner/lazy-database/backend/databases/postgres"
 	"log"
+	"os"
 
 	"github.com/jroimartin/gocui"
 )
 
 type model struct {
-	connections map[int]string
-	selected    int
+	onCursor      int
+	selected      int
+	connections   []string
+	configuration map[string]*postgres.PostgresConfig
 }
 
-// Create a new instance of the model
 func newModel() model {
 	return model{
-		connections: map[int]string{1: "Database1", 2: "Database2", 3: "Database3"},
-		selected:    0,
+		onCursor:      0,
+		selected:      0,
+		connections:   []string{},
+		configuration: map[string]*postgres.PostgresConfig{},
 	}
 }
 
@@ -28,6 +33,7 @@ func main() {
 	defer g.Close()
 
 	m := newModel()
+	loadConfig(&m)
 
 	g.SetManagerFunc(func(g *gocui.Gui) error {
 		return layout(g, &m)
@@ -57,32 +63,43 @@ func layout(g *gocui.Gui, m *model) error {
 		updateConnectionsView(v, m)
 	}
 
-	if v, err := g.SetView("right", 31, 0, 80, 10); err != nil {
+	if v, err := g.SetView("Tables", 31, 0, 80, 10); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
-		v.Title = "Database Details"
+		v.Title = "Database Tables"
 		v.Autoscroll = true
 		v.Wrap = true
 
-		updateDetailsView(v, m)
+		updateTablesView(v, m)
 	}
 
 	return nil
+}
+
+func loadConfig(m *model) {
+	fileName := "config.json"
+	data, err := os.ReadFile(fileName)
+	if err != nil {
+		log.Fatalf("Error reading the file: %v", err)
+	}
+	configuration, err := postgres.LoadConfig(data)
+	m.configuration["postgres"] = configuration
+	m.connections = append(m.connections, configuration.Name)
 }
 
 func updateConnectionsView(v *gocui.View, m *model) {
 	v.Clear()
 	for i, db := range m.connections {
 		cursor := " "
-		if i == m.selected {
+		if i == m.onCursor {
 			cursor = ">"
 		}
 		fmt.Fprintf(v, "%s %s\n", cursor, db)
 	}
 }
 
-func updateDetailsView(v *gocui.View, m *model) {
+func updateTablesView(v *gocui.View, m *model) {
 	v.Clear()
 	if len(m.connections) > 0 {
 		fmt.Fprintln(v, "Selected database: ", m.connections[m.selected])
@@ -92,8 +109,8 @@ func updateDetailsView(v *gocui.View, m *model) {
 
 func keybindings(g *gocui.Gui, m *model) error {
 	if err := g.SetKeybinding("", gocui.KeyArrowDown, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		if m.selected < len(m.connections)-1 {
-			m.selected++
+		if m.onCursor < len(m.connections)-1 {
+			m.onCursor++
 			updateViews(g, m)
 		}
 		return nil
@@ -102,8 +119,8 @@ func keybindings(g *gocui.Gui, m *model) error {
 	}
 
 	if err := g.SetKeybinding("", gocui.KeyArrowUp, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		if m.selected > 0 {
-			m.selected--
+		if m.onCursor > 0 {
+			m.onCursor--
 			updateViews(g, m)
 		}
 		return nil
@@ -112,7 +129,7 @@ func keybindings(g *gocui.Gui, m *model) error {
 	}
 	if err := g.SetKeybinding("", gocui.KeyEnter, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		if len(m.connections) > 0 {
-			m.selected = m.selected % len(m.connections)
+			m.selected = m.onCursor
 			updateViews(g, m)
 		}
 		return nil
@@ -127,7 +144,7 @@ func updateViews(g *gocui.Gui, m *model) {
 	if v, err := g.View("Connections"); err == nil {
 		updateConnectionsView(v, m)
 	}
-	if v, err := g.View("right"); err == nil {
-		updateDetailsView(v, m)
+	if v, err := g.View("Tables"); err == nil {
+		updateTablesView(v, m)
 	}
 }
