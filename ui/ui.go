@@ -34,12 +34,17 @@ func main() {
 
 	m := newModel()
 	loadConfig(&m)
+	DBConnection, err := postgres.NewDatabaseConnection(m.configuration["postgres"])
 
+	if err != nil {
+		fmt.Println("Error connecting to the database")
+		return
+	}
 	g.SetManagerFunc(func(g *gocui.Gui) error {
-		return layout(g, &m)
+		return layout(g, &m, DBConnection)
 	})
 
-	if err := keybindings(g, &m); err != nil {
+	if err := keybindings(g, &m, DBConnection); err != nil {
 		log.Fatal(err)
 	}
 
@@ -48,7 +53,7 @@ func main() {
 	}
 }
 
-func layout(g *gocui.Gui, m *model) error {
+func layout(g *gocui.Gui, m *model, connection *postgres.DatabaseConnection) error {
 	maxX, maxY := g.Size()
 
 	if v, err := g.SetView("Connections", 0, 0, maxX/4, maxY-1); err != nil {
@@ -63,7 +68,7 @@ func layout(g *gocui.Gui, m *model) error {
 		updateConnectionsView(v, m)
 	}
 
-	if v, err := g.SetView("Tables", 31, 0, 80, 10); err != nil {
+	if v, err := g.SetView("Tables", maxX/4, 0, maxX, maxY-1); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
@@ -71,7 +76,7 @@ func layout(g *gocui.Gui, m *model) error {
 		v.Autoscroll = true
 		v.Wrap = true
 
-		updateTablesView(v, m)
+		updateTablesView(v, m, connection)
 	}
 
 	return nil
@@ -99,19 +104,22 @@ func updateConnectionsView(v *gocui.View, m *model) {
 	}
 }
 
-func updateTablesView(v *gocui.View, m *model) {
+func updateTablesView(v *gocui.View, m *model, connection *postgres.DatabaseConnection) {
 	v.Clear()
 	if len(m.connections) > 0 {
-		fmt.Fprintln(v, "Selected database: ", m.connections[m.selected])
-		fmt.Fprintln(v, m.selected)
+		tables, err := connection.GetTableStructure("profile_userprofile")
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println(tables)
 	}
 }
 
-func keybindings(g *gocui.Gui, m *model) error {
+func keybindings(g *gocui.Gui, m *model, connection *postgres.DatabaseConnection) error {
 	if err := g.SetKeybinding("", gocui.KeyArrowDown, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		if m.onCursor < len(m.connections)-1 {
 			m.onCursor++
-			updateViews(g, m)
+			updateViews(g, m, connection)
 		}
 		return nil
 	}); err != nil {
@@ -121,7 +129,7 @@ func keybindings(g *gocui.Gui, m *model) error {
 	if err := g.SetKeybinding("", gocui.KeyArrowUp, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		if m.onCursor > 0 {
 			m.onCursor--
-			updateViews(g, m)
+			updateViews(g, m, connection)
 		}
 		return nil
 	}); err != nil {
@@ -130,7 +138,7 @@ func keybindings(g *gocui.Gui, m *model) error {
 	if err := g.SetKeybinding("", gocui.KeyEnter, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		if len(m.connections) > 0 {
 			m.selected = m.onCursor
-			updateViews(g, m)
+			updateViews(g, m, connection)
 		}
 		return nil
 	}); err != nil {
@@ -140,11 +148,11 @@ func keybindings(g *gocui.Gui, m *model) error {
 	return nil
 }
 
-func updateViews(g *gocui.Gui, m *model) {
+func updateViews(g *gocui.Gui, m *model, connection *postgres.DatabaseConnection) {
 	if v, err := g.View("Connections"); err == nil {
 		updateConnectionsView(v, m)
 	}
 	if v, err := g.View("Tables"); err == nil {
-		updateTablesView(v, m)
+		updateTablesView(v, m, connection)
 	}
 }
