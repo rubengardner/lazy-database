@@ -3,6 +3,8 @@ package postgres
 import (
 	"database/sql"
 	"fmt"
+
+	_ "github.com/lib/pq"
 )
 
 type DatabaseConnection struct {
@@ -22,12 +24,14 @@ func NewDatabaseConnection(config *PostgresConfig) (*DatabaseConnection, error) 
 }
 
 func (db *DatabaseConnection) GetTableStructure(tableName string) ([]string, error) {
-	rows, err := db.Db.Query(fmt.Sprintf("SELECT column_name FROM information_schema.columns WHERE table_name = '%s'", tableName))
+	rows, err := db.Db.Query(`
+  SELECT column_name
+  FROM information_schema.columns
+  WHERE table_name = $1 AND table_schema = 'public'
+`, tableName)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
 	var columns []string
 	for rows.Next() {
 		var columnName string
@@ -38,6 +42,29 @@ func (db *DatabaseConnection) GetTableStructure(tableName string) ([]string, err
 	}
 
 	return columns, nil
+}
+
+func (db *DatabaseConnection) GetAllTables() ([]string, error) {
+	rows, err := db.Db.Query(`
+  SELECT table_name
+  FROM information_schema.tables
+  WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+  ORDER BY table_name
+`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tables []string
+	for rows.Next() {
+		var tableName string
+		if err := rows.Scan(&tableName); err != nil {
+			return nil, err
+		}
+		tables = append(tables, tableName)
+	}
+	return tables, nil
 }
 
 // GetTableData fetches all data from a given table
