@@ -47,7 +47,16 @@ func main() {
 	g.SetManagerFunc(func(g *gocui.Gui) error {
 		return layout(g, &m, db_connection)
 	})
+
+	if err := layout(g, &m, db_connection); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := keybindings(g, &m, db_connection); err != nil {
+		log.Fatal(err)
+	}
+
+	if _, err := g.SetCurrentView("Connections"); err != nil {
 		log.Fatal(err)
 	}
 
@@ -66,6 +75,9 @@ func layout(g *gocui.Gui, m *model, connection *postgres.DatabaseConnection) err
 		v.Title = "Databases"
 		v.Autoscroll = false
 		v.Wrap = true
+		v.Highlight = true
+		v.SelBgColor = gocui.ColorGreen
+		v.SelFgColor = gocui.ColorBlack
 
 		// Render the connections list
 		updateConnectionsView(v, m)
@@ -78,10 +90,12 @@ func layout(g *gocui.Gui, m *model, connection *postgres.DatabaseConnection) err
 		v.Title = "Database Tables"
 		v.Autoscroll = true
 		v.Wrap = true
+		v.Highlight = true
+		v.SelBgColor = gocui.ColorGreen
+		v.SelFgColor = gocui.ColorBlack
 
 		updateTablesView(v, m, connection)
 	}
-
 	return nil
 }
 
@@ -92,6 +106,9 @@ func loadConfig(m *model) {
 		log.Fatalf("Error reading the file: %v", err)
 	}
 	configuration, err := postgres.LoadConfig(data)
+	if err != nil {
+		fmt.Println(err)
+	}
 	m.configuration["postgres"] = configuration
 	m.connections = append(m.connections, configuration.Name)
 }
@@ -133,6 +150,14 @@ func updateTablesView(v *gocui.View, m *model, connection *postgres.DatabaseConn
 }
 
 func keybindings(g *gocui.Gui, m *model, connection *postgres.DatabaseConnection) error {
+	// Quit binding
+	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		return gocui.ErrQuit
+	}); err != nil {
+		return err
+	}
+
+	// Navigation in Connections view
 	if err := g.SetKeybinding("", gocui.KeyArrowDown, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		if m.onCursor < len(m.connections)-1 {
 			m.onCursor++
@@ -152,33 +177,38 @@ func keybindings(g *gocui.Gui, m *model, connection *postgres.DatabaseConnection
 	}); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("", gocui.KeyEnter, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+
+	// Connection selection
+	if err := g.SetKeybinding("Connections", gocui.KeyEnter, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		if len(m.connections) > 0 {
 			m.selected = m.onCursor
-			if _, err := g.View("Tables"); err == nil {
-				tables, err := connection.GetAllTables()
-				if err == nil {
-					m.tables = tables
-					m.tablesCursor = 0
-				}
+			tables, err := connection.GetAllTables()
+			if err == nil {
+				m.tables = tables
+				m.tablesCursor = 0
 			}
 			updateViews(g, m, connection)
-		}
-		return nil
-	}); err != nil {
-		return err
-	}
-	if err := g.SetKeybinding("", gocui.KeyArrowRight, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		if _, err := g.SetCurrentView("Tables"); err == nil {
+			if _, err := g.SetCurrentView("Tables"); err != nil {
+				return err
+			}
 		}
 		return nil
 	}); err != nil {
 		return err
 	}
 
-	if err := g.SetKeybinding("", gocui.KeyArrowLeft, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		if _, err := g.SetCurrentView("Connections"); err == nil {
-			// Focus on connections view
+	if err := g.SetKeybinding("Connections", gocui.KeyArrowRight, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		if _, err := g.SetCurrentView("Tables"); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	if err := g.SetKeybinding("Tables", gocui.KeyArrowLeft, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		if _, err := g.SetCurrentView("Connections"); err != nil {
+			return err
 		}
 		return nil
 	}); err != nil {
@@ -204,8 +234,11 @@ func keybindings(g *gocui.Gui, m *model, connection *postgres.DatabaseConnection
 	}); err != nil {
 		return err
 	}
+
 	// if err := g.SetKeybinding("Tables", gocui.KeyEnter, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-	// 		m.table[m.tablesCursor]
+	// 	if len(m.tables) > 0 {
+	// 		_ = m.tables[m.tablesCursor]
+	// 		// TODO: Add action for when a table is selected
 	// 		updateViews(g, m, connection)
 	// 	}
 	// 	return nil
