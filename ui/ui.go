@@ -17,6 +17,7 @@ type model struct {
 	configuration map[string]*postgres.PostgresConfig
 	tablesCursor  int
 	tables        []string
+	tableData     [][]string
 }
 
 func newModel() model {
@@ -27,6 +28,7 @@ func newModel() model {
 		configuration: map[string]*postgres.PostgresConfig{},
 		tablesCursor:  0,
 		tables:        []string{},
+		tableData:     [][]string{},
 	}
 }
 
@@ -82,8 +84,7 @@ func layout(g *gocui.Gui, m *model, connection *postgres.DatabaseConnection) err
 		// Render the connections list
 		updateConnectionsView(v, m)
 	}
-
-	if v, err := g.SetView("Tables", maxX/4, 0, maxX, maxY-1); err != nil {
+	if v, err := g.SetView("Tables", maxX/4, 0, maxX/2, maxY-1); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
@@ -95,6 +96,16 @@ func layout(g *gocui.Gui, m *model, connection *postgres.DatabaseConnection) err
 		v.SelFgColor = gocui.ColorBlack
 
 		updateTablesView(v, m, connection)
+	}
+	if v, err := g.SetView("Data", maxX/2, 0, maxX, maxY-1); err != nil {
+		if err != gocui.ErrUnknownView {
+			return err
+		}
+		v.Title = "Table Data"
+		v.Autoscroll = true
+		v.Wrap = true
+
+		updateDataView(v, m)
 	}
 	return nil
 }
@@ -147,6 +158,24 @@ func updateTablesView(v *gocui.View, m *model, connection *postgres.DatabaseConn
 		}
 		fmt.Fprintf(v, "%s %s\n", cursor, table)
 	}
+}
+
+func updateDataView(v *gocui.View, m *model) {
+	v.Clear()
+
+	if len(m.tableData) == 0 {
+		fmt.Fprintf(v, "Select a table to view data")
+		return
+	}
+
+	for _, row := range m.tableData {
+		fmt.Fprintf(v, "%s\n", formatRow(row))
+	}
+}
+
+func formatRow(row []string) string {
+	// Simple formatter - can be enhanced for better display
+	return fmt.Sprintf("%v", row)
 }
 
 func keybindings(g *gocui.Gui, m *model, connection *postgres.DatabaseConnection) error {
@@ -235,16 +264,46 @@ func keybindings(g *gocui.Gui, m *model, connection *postgres.DatabaseConnection
 		return err
 	}
 
-	// if err := g.SetKeybinding("Tables", gocui.KeyEnter, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-	// 	if len(m.tables) > 0 {
-	// 		_ = m.tables[m.tablesCursor]
-	// 		// TODO: Add action for when a table is selected
-	// 		updateViews(g, m, connection)
-	// 	}
-	// 	return nil
-	// }); err != nil {
-	// 	return err
-	// }
+	if err := g.SetKeybinding("Tables", gocui.KeyEnter, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		if len(m.tables) > 0 {
+			tableName := m.tables[m.tablesCursor]
+			rawData, err := connection.GetTableData(tableName)
+			if err == nil {
+				m.tableData = [][]string{}
+				for _, row := range rawData {
+					rowData := []string{}
+					for _, val := range row {
+						rowData = append(rowData, fmt.Sprintf("%v", val))
+					}
+					m.tableData = append(m.tableData, rowData)
+				}
+			}
+			updateViews(g, m, connection)
+			if _, err := g.SetCurrentView("Data"); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	if err := g.SetKeybinding("Data", gocui.KeyArrowLeft, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		if _, err := g.SetCurrentView("Tables"); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	if err := g.SetKeybinding("Tables", gocui.KeyArrowRight, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		if _, err := g.SetCurrentView("Data"); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -255,5 +314,8 @@ func updateViews(g *gocui.Gui, m *model, connection *postgres.DatabaseConnection
 	}
 	if v, err := g.View("Tables"); err == nil {
 		updateTablesView(v, m, connection)
+	}
+	if v, err := g.View("Data"); err == nil {
+		updateDataView(v, m)
 	}
 }
