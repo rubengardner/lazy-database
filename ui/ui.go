@@ -267,15 +267,24 @@ func keybindings(g *gocui.Gui, m *model, connection *postgres.DatabaseConnection
 	if err := g.SetKeybinding("Tables", gocui.KeyEnter, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		if len(m.tables) > 0 {
 			tableName := m.tables[m.tablesCursor]
-			rawData, err := connection.GetTableData(tableName)
+			tableData, err := connection.GetTableData(tableName)
 			if err == nil {
 				m.tableData = [][]string{}
-				for _, row := range rawData {
-					rowData := []string{}
-					for _, val := range row {
-						rowData = append(rowData, fmt.Sprintf("%v", val))
+				m.tableData = [][]string{}
+
+				if tableData != nil {
+					headers := tableData.Headers
+					if len(headers) > 0 {
+						m.tableData = append(m.tableData, headers)
 					}
-					m.tableData = append(m.tableData, rowData)
+
+					for _, row := range tableData.Rows {
+						rowData := []string{}
+						for _, val := range row {
+							rowData = append(rowData, fmt.Sprintf("%v", val))
+						}
+						m.tableData = append(m.tableData, rowData)
+					}
 				}
 			}
 			updateViews(g, m, connection)

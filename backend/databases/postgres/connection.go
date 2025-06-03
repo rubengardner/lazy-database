@@ -67,8 +67,13 @@ func (db *DatabaseConnection) GetAllTables() ([]string, error) {
 	return tables, nil
 }
 
+type TableData struct {
+	Headers []string        // Column names
+	Rows    [][]interface{} // Row data as array of values
+}
+
 // GetTableData fetches all data from a given table
-func (db *DatabaseConnection) GetTableData(tableName string) ([]map[string]interface{}, error) {
+func (db *DatabaseConnection) GetTableData(tableName string) (*TableData, error) {
 	rows, err := db.Db.Query(fmt.Sprintf("SELECT * FROM %s", tableName))
 	if err != nil {
 		return nil, err
@@ -81,9 +86,12 @@ func (db *DatabaseConnection) GetTableData(tableName string) ([]map[string]inter
 		return nil, err
 	}
 
-	var results []map[string]interface{}
+	result := &TableData{
+		Headers: columns,
+		Rows:    [][]interface{}{},
+	}
+
 	for rows.Next() {
-		// Create a slice of interface{} to hold the row values
 		values := make([]interface{}, len(columns))
 		valuePointers := make([]interface{}, len(columns))
 		for i := range columns {
@@ -95,14 +103,14 @@ func (db *DatabaseConnection) GetTableData(tableName string) ([]map[string]inter
 		}
 
 		// Map column names to the values
-		rowData := make(map[string]interface{})
+		rowData := make(map[string]any)
 		for i, columnName := range columns {
 			val := values[i]
 			rowData[columnName] = val
 		}
 
-		results = append(results, rowData)
+		result.Rows = append(result.Rows, values)
 	}
 
-	return results, nil
+	return result, nil
 }
