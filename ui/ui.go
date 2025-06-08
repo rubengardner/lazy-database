@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/rubengardner/lazy-database/backend/databases/postgres"
 
@@ -102,8 +103,10 @@ func layout(g *gocui.Gui, m *model, connection *postgres.DatabaseConnection) err
 			return err
 		}
 		v.Title = "Table Data"
-		v.Autoscroll = true
-		v.Wrap = true
+		v.Autoscroll = false
+		v.Wrap = false
+		v.SelBgColor = gocui.ColorGreen
+		v.SelFgColor = gocui.ColorBlack
 
 		updateDataView(v, m)
 	}
@@ -168,14 +171,68 @@ func updateDataView(v *gocui.View, m *model) {
 		return
 	}
 
-	for _, row := range m.tableData {
-		fmt.Fprintf(v, "%s\n", formatRow(row))
+	// Calculate column widths based on data
+	colWidths := calculateColumnWidths(m.tableData)
+
+	// Print the header with special formatting
+	if len(m.tableData) > 0 {
+		header := formatRowWithWidth(m.tableData[0], colWidths, true)
+		fmt.Fprintf(v, "\033[1;37m%s\033[0m\n", header)
+
+		// Separator line under header
+		separator := ""
+		for _, width := range colWidths {
+			separator += strings.Repeat("-", width) + "  "
+		}
+		fmt.Fprintf(v, "%s\n", separator)
+
+		// Print the data rows
+		for i := 1; i < len(m.tableData); i++ {
+			fmt.Fprintf(v, "%s\n", formatRowWithWidth(m.tableData[i], colWidths, false))
+		}
 	}
 }
 
 func formatRow(row []string) string {
-	// Simple formatter - can be enhanced for better display
+	// This is kept for backward compatibility
 	return fmt.Sprintf("%v", row)
+}
+
+func calculateColumnWidths(data [][]string) []int {
+	if len(data) == 0 {
+		return []int{}
+	}
+
+	// Initialize with header lengths
+	widths := make([]int, len(data[0]))
+	for i, col := range data[0] {
+		widths[i] = len(col)
+	}
+
+	// Check all rows to find maximum width for each column
+	for _, row := range data {
+		for i, col := range row {
+			if i < len(widths) && len(col) > widths[i] {
+				widths[i] = len(col)
+			}
+		}
+	}
+
+	return widths
+}
+
+func formatRowWithWidth(row []string, colWidths []int, isHeader bool) string {
+	var formattedRow string
+	for i, cell := range row {
+		if i < len(colWidths) {
+			formattedCell := cell
+			if len(cell) < colWidths[i] {
+				formattedCell = cell + strings.Repeat(" ", colWidths[i]-len(cell))
+			}
+			formattedRow += formattedCell + "  "
+		}
+	}
+	return formattedRow
 }
 
 func keybindings(g *gocui.Gui, m *model, connection *postgres.DatabaseConnection) error {
@@ -304,6 +361,23 @@ func keybindings(g *gocui.Gui, m *model, connection *postgres.DatabaseConnection
 	}); err != nil {
 		return err
 	}
+	if err := g.SetKeybinding("Data", gocui.KeyArrowRight, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		return scrollView(v, 2, 0) // Scroll right
+	}); err != nil {
+		return err
+	}
+
+	if err := g.SetKeybinding("Data", gocui.KeyArrowUp, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		return scrollView(v, 0, -1) // Scroll up
+	}); err != nil {
+		return err
+	}
+
+	if err := g.SetKeybinding("Data", gocui.KeyArrowDown, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		return scrollView(v, 0, 1) // Scroll down
+	}); err != nil {
+		return err
+	}
 
 	if err := g.SetKeybinding("Tables", gocui.KeyArrowRight, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		if _, err := g.SetCurrentView("Data"); err != nil {
@@ -314,6 +388,16 @@ func keybindings(g *gocui.Gui, m *model, connection *postgres.DatabaseConnection
 		return err
 	}
 
+	return nil
+}
+
+func scrollView(v *gocui.View, dx, dy int) error {
+	if v != nil {
+		ox, oy := v.Origin()
+		if ox+dx >= 0 && oy+dy >= 0 {
+			v.SetOrigin(ox+dx, oy+dy)
+		}
+	}
 	return nil
 }
 
