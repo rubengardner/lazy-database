@@ -1,9 +1,0 @@
-{
-  "name": "Local Connection",
-  "host": "localhost",
-  "port": 5432,
-  "username": "postrgres",
-  "password": "postrgres1",
-  "dbname": "dbhvu01u3e3fug",
-  "sslmode": "disable"
-}
