@@ -6,7 +6,7 @@ import (
 	"github.com/rubengardner/lazy-database/internal/model"
 )
 
-func layout(g *gocui.Gui, m *model.LazyDBState, connection *postgres.DatabaseConnection) error {
+func Layout(g *gocui.Gui, m *model.LazyDBState, connection *postgres.DatabaseConnection) error {
 	maxX, maxY := g.Size()
 
 	if v, err := g.SetView("Connections", 0, 0, maxX/4, maxY-1); err != nil {

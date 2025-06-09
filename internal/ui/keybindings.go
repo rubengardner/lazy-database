@@ -8,14 +8,13 @@ import (
 	"github.com/rubengardner/lazy-database/internal/model"
 )
 
-func keybindings(g *gocui.Gui, m *model.LazyDBState, connection *postgres.DatabaseConnection) error {
+func Keybindings(g *gocui.Gui, m *model.LazyDBState, connection *postgres.DatabaseConnection) error {
 	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		return gocui.ErrQuit
 	}); err != nil {
 		return err
 	}
 
-	// Navigation in Connections view
 	if err := g.SetKeybinding("", gocui.KeyArrowDown, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		if m.OnCursor < len(m.Connections)-1 {
 			m.OnCursor++
@@ -36,7 +35,6 @@ func keybindings(g *gocui.Gui, m *model.LazyDBState, connection *postgres.Databa
 		return err
 	}
 
-	// Connection selection
 	if err := g.SetKeybinding("Connections", gocui.KeyEnter, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		if len(m.Connections) > 0 {
 			m.Selected = m.OnCursor
