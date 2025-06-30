@@ -56,17 +56,32 @@ func updateDataView(v *gocui.View, m *model.LazyDBState) {
 	colWidths := calculateColumnWidths(m.TableData)
 
 	if len(m.TableData) > 0 {
+		// Print header
 		header := formatRowWithWidth(m.TableData[0], colWidths, true)
 		fmt.Fprintf(v, "\033[1;37m%s\033[0m\n", header)
 
+		// Print separator
 		separator := ""
 		for _, width := range colWidths {
 			separator += strings.Repeat("-", width) + "  "
 		}
 		fmt.Fprintf(v, "%s\n", separator)
 
+		// Print data rows with cursor highlighting
 		for i := 1; i < len(m.TableData); i++ {
-			fmt.Fprintf(v, "%s\n", formatRowWithWidth(m.TableData[i], colWidths, false))
+			row := m.TableData[i]
+			rowStr := ""
+
+			for j, cell := range row {
+				// Apply highlighting if this is the cursor position
+				if i == m.DataCursorRow && j == m.DataCursorCol {
+					rowStr += fmt.Sprintf("\033[7m%-*s\033[0m  ", colWidths[j], cell) // Inverted colors
+				} else {
+					rowStr += fmt.Sprintf("%-*s  ", colWidths[j], cell)
+				}
+			}
+
+			fmt.Fprintf(v, "%s\n", rowStr)
 		}
 	}
 }

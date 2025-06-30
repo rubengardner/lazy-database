@@ -14,7 +14,6 @@ type PopupOptions struct {
 	Centered   bool
 	OnClose    func() error
 	InputField bool
-	InputLabel string
 	OnSubmit   func(string) error
 }
 
@@ -65,10 +64,6 @@ func createPopupView(g *gocui.Gui, x, y, width, height int, opts PopupOptions) e
 					return err
 				}
 
-				if opts.InputLabel != "" {
-					fmt.Fprintf(v, "\n%s", opts.InputLabel)
-				}
-
 				inputView.Editable = true
 				inputView.Wrap = true
 				g.SetCurrentView(inputName)
@@ -89,7 +84,6 @@ func createPopupView(g *gocui.Gui, x, y, width, height int, opts PopupOptions) e
 			}
 		}
 
-		// Set keybinding to close popup
 		if err := g.SetKeybinding(popupName, gocui.KeyEsc, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 			if opts.InputField {
 				g.DeleteView("popupInput")
@@ -104,7 +98,6 @@ func createPopupView(g *gocui.Gui, x, y, width, height int, opts PopupOptions) e
 			return err
 		}
 
-		// If no input field, set the popup as current view
 		if !opts.InputField {
 			g.SetCurrentView(popupName)
 		}
@@ -115,15 +108,13 @@ func createPopupView(g *gocui.Gui, x, y, width, height int, opts PopupOptions) e
 
 func ShowInfoPopup(g *gocui.Gui, title, message string) error {
 	return CreatePopup(g, PopupOptions{
-		Title:    title,
-		Message:  message,
-		Width:    len(message) + 10, // Adjust width based on message
-		Height:   6,
+		Title:   title,
+		Message: message,
+		Width:   len(message) + 10, Height: 6,
 		Centered: true,
 	})
 }
 
-// ShowErrorPopup displays an error popup with a message
 func ShowErrorPopup(g *gocui.Gui, message string) error {
 	return CreatePopup(g, PopupOptions{
 		Title:    "Error",
@@ -160,7 +151,6 @@ func ShowInputPopup(g *gocui.Gui, title, prompt string, onSubmit func(string) er
 		Height:     8,
 		Centered:   true,
 		InputField: true,
-		InputLabel: prompt,
 		OnSubmit:   onSubmit,
 	})
 }
