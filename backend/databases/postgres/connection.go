@@ -73,8 +73,16 @@ type TableData struct {
 }
 
 // GetTableData fetches all data from a given table
-func (db *DatabaseConnection) GetTableData(tableName string) (*TableData, error) {
-	rows, err := db.Db.Query(fmt.Sprintf("SELECT * FROM %s", tableName))
+// GetTableData fetches data from a given table, optionally filtered by a query
+func (db *DatabaseConnection) GetTableData(tableName string, whereClause ...string) (*TableData, error) {
+	query := fmt.Sprintf("SELECT * FROM %s", tableName)
+
+	// Apply where clause if provided
+	if len(whereClause) > 0 && whereClause[0] != "" {
+		query = fmt.Sprintf("%s WHERE %s", query, whereClause[0])
+	}
+
+	rows, err := db.Db.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -102,14 +110,13 @@ func (db *DatabaseConnection) GetTableData(tableName string) (*TableData, error)
 			return nil, err
 		}
 
-		// Map column names to the values
-		rowData := make(map[string]any)
-		for i, columnName := range columns {
-			val := values[i]
-			rowData[columnName] = val
+		// Convert the values to a slice of interfaces
+		row := make([]interface{}, len(columns))
+		for i, val := range values {
+			row[i] = val
 		}
 
-		result.Rows = append(result.Rows, values)
+		result.Rows = append(result.Rows, row)
 	}
 
 	return result, nil

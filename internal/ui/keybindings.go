@@ -96,34 +96,18 @@ func Keybindings(g *gocui.Gui, m *model.LazyDBState, connection *postgres.Databa
 			tableName := m.Tables[m.TablesCursor]
 			tableData, err := connection.GetTableData(tableName)
 			if err == nil {
-				m.TableData = [][]string{}
-				m.TableData = [][]string{}
-
-				if tableData != nil {
-					headers := tableData.Headers
-					if len(headers) > 0 {
-						m.TableData = append(m.TableData, headers)
-					}
-
-					for _, row := range tableData.Rows {
-						rowData := []string{}
-						for _, val := range row {
-							rowData = append(rowData, fmt.Sprintf("%v", val))
-						}
-						m.TableData = append(m.TableData, rowData)
-					}
+				m.TableData = populateTableData(tableData)
+				updateViews(g, m, connection)
+				if _, err := g.SetCurrentView("Data"); err != nil {
+					return err
 				}
-			}
-			updateViews(g, m, connection)
-			if _, err := g.SetCurrentView("Data"); err != nil {
-				return err
 			}
 		}
 		return nil
 	}); err != nil {
 		return err
 	}
-	if err := g.SetKeybinding("Data", gocui.KeyArrowLeft, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+	if err := g.SetKeybinding("Data", 'q', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		if _, err := g.SetCurrentView("Tables"); err != nil {
 			return err
 		}
@@ -136,6 +120,11 @@ func Keybindings(g *gocui.Gui, m *model.LazyDBState, connection *postgres.Databa
 	}); err != nil {
 		return err
 	}
+	if err := g.SetKeybinding("Data", gocui.KeyArrowLeft, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		return scrollView(v, -2, 0) // Scroll left
+	}); err != nil {
+		return err
+	}
 
 	if err := g.SetKeybinding("Data", gocui.KeyArrowUp, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		return scrollView(v, 0, -1) // Scroll up
@@ -145,6 +134,24 @@ func Keybindings(g *gocui.Gui, m *model.LazyDBState, connection *postgres.Databa
 
 	if err := g.SetKeybinding("Data", gocui.KeyArrowDown, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		return scrollView(v, 0, 1) // Scroll down
+	}); err != nil {
+		return err
+	}
+	if err := g.SetKeybinding("Data", 'f', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		return ShowInputPopup(g, "Query", "Enter SQL Query", func(input string) error {
+			if input != "" {
+				tableName := m.Tables[m.TablesCursor]
+				tableData, err := connection.GetTableData(tableName, input)
+				if err == nil {
+					m.TableData = populateTableData(tableData)
+					updateViews(g, m, connection)
+					if _, err := g.SetCurrentView("Data"); err != nil {
+						return err
+					}
+				}
+			}
+			return nil
+		})
 	}); err != nil {
 		return err
 	}
@@ -169,4 +176,25 @@ func scrollView(v *gocui.View, dx, dy int) error {
 		}
 	}
 	return nil
+}
+
+func populateTableData(tableData *postgres.TableData) [][]string {
+	result := [][]string{}
+
+	if tableData == nil {
+		return result
+	}
+
+	if len(tableData.Headers) > 0 {
+		result = append(result, tableData.Headers)
+	}
+	for _, row := range tableData.Rows {
+		rowData := []string{}
+		for _, val := range row {
+			rowData = append(rowData, fmt.Sprintf("%v", val))
+		}
+		result = append(result, rowData)
+	}
+
+	return result
 }
