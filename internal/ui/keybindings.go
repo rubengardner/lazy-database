@@ -127,7 +127,7 @@ func Keybindings(g *gocui.Gui, m *model.LazyDBState, connection *postgres.Databa
 			updateViews(g, m, connection)
 			return scrollView(v, colWidth, 0)
 		}
-		return nil // Don't scroll if no more columns
+		return nil
 	}); err != nil {
 		return err
 	}
