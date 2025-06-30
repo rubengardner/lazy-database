@@ -97,9 +97,12 @@ func Keybindings(g *gocui.Gui, m *model.LazyDBState, connection *postgres.Databa
 			tableData, err := connection.GetTableData(tableName)
 			if err == nil {
 				m.TableData = populateTableData(tableData)
-				m.DataCursorRow = 1 // Reset cursor to first data row
-				m.DataCursorCol = 0 // Reset cursor to first column
+				m.DataCursorRow = 1
+				m.DataCursorCol = 0
 				updateViews(g, m, connection)
+				if v, err := g.View("Data"); err == nil {
+					v.SetOrigin(0, 0)
+				}
 				if _, err := g.SetCurrentView("Data"); err != nil {
 					return err
 				}
@@ -118,45 +121,47 @@ func Keybindings(g *gocui.Gui, m *model.LazyDBState, connection *postgres.Databa
 		return err
 	}
 	if err := g.SetKeybinding("Data", gocui.KeyArrowRight, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		// Move right in the grid
 		if len(m.TableData) > 0 && m.DataCursorCol < len(m.TableData[0])-1 {
+			colWidth := getColumnWidth(m.TableData, m.DataCursorCol)
 			m.DataCursorCol++
 			updateViews(g, m, connection)
+			return scrollView(v, colWidth, 0)
 		}
-		return scrollView(v, 2, 0) // Also scroll the view right
+		return nil // Don't scroll if no more columns
 	}); err != nil {
 		return err
 	}
 
 	if err := g.SetKeybinding("Data", gocui.KeyArrowLeft, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		// Move left in the grid
-		if m.DataCursorCol > 0 {
+		if len(m.TableData) > 0 && m.DataCursorCol > 0 {
 			m.DataCursorCol--
+			colWidth := getColumnWidth(m.TableData, m.DataCursorCol)
 			updateViews(g, m, connection)
+			return scrollView(v, -colWidth, 0)
 		}
-		return scrollView(v, -2, 0) // Also scroll the view left
+		return nil
 	}); err != nil {
 		return err
 	}
 
 	if err := g.SetKeybinding("Data", gocui.KeyArrowUp, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		// Move up in the grid (but not into the header)
 		if m.DataCursorRow > 1 {
 			m.DataCursorRow--
 			updateViews(g, m, connection)
 		}
-		return scrollView(v, 0, -1) // Also scroll the view up
+		return scrollView(v, 0, -1)
 	}); err != nil {
 		return err
 	}
 
 	if err := g.SetKeybinding("Data", gocui.KeyArrowDown, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		// Move down in the grid
 		if len(m.TableData) > 0 && m.DataCursorRow < len(m.TableData)-1 {
 			m.DataCursorRow++
 			updateViews(g, m, connection)
+
+			return scrollView(v, 0, 1)
 		}
-		return scrollView(v, 0, 1) // Also scroll the view down
+		return nil
 	}); err != nil {
 		return err
 	}
@@ -224,4 +229,20 @@ func populateTableData(tableData *postgres.TableData) [][]string {
 	}
 
 	return result
+}
+
+func getColumnWidth(tableData [][]string, colIndex int) int {
+	if len(tableData) == 0 || colIndex < 0 || (len(tableData) > 0 && colIndex >= len(tableData[0])) {
+		return 0
+	}
+
+	maxWidth := 0
+	for _, row := range tableData {
+		if colIndex < len(row) && len(row[colIndex]) > maxWidth {
+			maxWidth = len(row[colIndex])
+		}
+	}
+
+	// Add some padding (e.g., 2 spaces)
+	return maxWidth + 2
 }

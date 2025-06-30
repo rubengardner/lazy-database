@@ -23,7 +23,7 @@ func calculateColumnWidths(data [][]string) []int {
 	return widths
 }
 
-func formatRowWithWidth(row []string, colWidths []int, isHeader bool) string {
+func formatRowWithWidth(row []string, colWidths []int) string {
 	var formattedRow string
 	for i, cell := range row {
 		if i < len(colWidths) {
