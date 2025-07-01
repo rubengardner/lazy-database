@@ -183,6 +183,9 @@ func Keybindings(g *gocui.Gui, m *model.LazyDBState, connection *postgres.Databa
 				}
 			}
 			return nil
+		}, func() error {
+			g.SetCurrentView("Data")
+			return nil
 		})
 	}); err != nil {
 		return err

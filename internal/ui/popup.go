@@ -81,6 +81,18 @@ func createPopupView(g *gocui.Gui, x, y, width, height int, opts PopupOptions) e
 				}); err != nil {
 					return err
 				}
+
+				if err := g.SetKeybinding(inputName, 'q', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+					g.DeleteView(inputName)
+					g.DeleteView(popupName)
+
+					if opts.OnClose != nil {
+						return opts.OnClose()
+					}
+					return nil
+				}); err != nil {
+					return err
+				}
 			}
 		}
 
@@ -143,7 +155,7 @@ func ShowConfirmPopup(g *gocui.Gui, message string, onConfirm func() error) erro
 	})
 }
 
-func ShowInputPopup(g *gocui.Gui, title, prompt string, onSubmit func(string) error) error {
+func ShowInputPopup(g *gocui.Gui, title, prompt string, onSubmit func(string) error, onClose func() error) error {
 	return CreatePopup(g, PopupOptions{
 		Title:      title,
 		Message:    prompt,
@@ -152,5 +164,6 @@ func ShowInputPopup(g *gocui.Gui, title, prompt string, onSubmit func(string) er
 		Centered:   true,
 		InputField: true,
 		OnSubmit:   onSubmit,
+		OnClose:    onClose,
 	})
 }
