@@ -12,7 +12,7 @@ type LazyDBState struct {
 	TableData     [][]string
 	DataCursorRow int
 	DataCursorCol int
-	InDetailView  bool // Tracks if we're in detail view mode
+	InDetailView  bool
 }
 
 func NewLazyDBState() LazyDBState {
