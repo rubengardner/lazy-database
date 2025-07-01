@@ -14,7 +14,7 @@ func updateConnectionsView(v *gocui.View, m *model.LazyDBState) {
 	for i, db := range m.Connections {
 		cursor := " "
 		if i == m.OnCursor {
-			cursor = ">"
+			cursor = "❯"
 		}
 		fmt.Fprintf(v, "%s %s\n", cursor, db)
 	}
@@ -39,7 +39,7 @@ func updateTablesView(v *gocui.View, m *model.LazyDBState, connection *postgres.
 	for i, table := range m.Tables {
 		cursor := " "
 		if i == m.TablesCursor {
-			cursor = ">"
+			cursor = "❯"
 		}
 		fmt.Fprintf(v, "%s %s\n", cursor, table)
 	}
