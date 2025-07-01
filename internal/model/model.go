@@ -10,8 +10,9 @@ type LazyDBState struct {
 	TablesCursor  int
 	Tables        []string
 	TableData     [][]string
-	DataCursorRow int // Current row position in data view
-	DataCursorCol int // Current column position in data view
+	DataCursorRow int
+	DataCursorCol int
+	InDetailView  bool // Tracks if we're in detail view mode
 }
 
 func NewLazyDBState() LazyDBState {
@@ -23,7 +24,8 @@ func NewLazyDBState() LazyDBState {
 		TablesCursor:  0,
 		Tables:        []string{},
 		TableData:     [][]string{},
-		DataCursorRow: 1, // Start at row 1 (below header)
+		DataCursorRow: 1,
 		DataCursorCol: 0,
+		InDetailView:  false,
 	}
 }

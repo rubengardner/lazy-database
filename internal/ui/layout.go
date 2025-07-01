@@ -8,15 +8,13 @@ import (
 
 func Layout(g *gocui.Gui, m *model.LazyDBState, connection *postgres.DatabaseConnection) error {
 	maxX, maxY := g.Size()
-
-	// Check if Tables or Data view is currently selected
 	currentView := g.CurrentView()
 	isTablesViewSelected := currentView != nil && currentView.Name() == "Tables"
 	isDataViewSelected := currentView != nil && currentView.Name() == "Data"
-	isDetailView := isTablesViewSelected || isDataViewSelected
+	isDetailView := isTablesViewSelected || isDataViewSelected || m.InDetailView
 
+	m.InDetailView = isDetailView
 	if !isDetailView {
-		// Normal layout - show Connections view
 		if v, err := g.SetView("Connections", 0, 0, maxX/4, maxY-1); err != nil {
 			if err != gocui.ErrUnknownView {
 				return err
@@ -45,7 +43,7 @@ func Layout(g *gocui.Gui, m *model.LazyDBState, connection *postgres.DatabaseCon
 			updateTablesView(v, m, connection)
 		}
 	} else {
-		// When Tables or Data view is selected - hide Connections and shrink Tables
+		m.InDetailView = true
 		g.DeleteView("Connections")
 
 		// Tables view now takes 1/4 of screen at the left edge
@@ -64,7 +62,6 @@ func Layout(g *gocui.Gui, m *model.LazyDBState, connection *postgres.DatabaseCon
 		}
 	}
 
-	// Data view size changes based on whether detail view is active
 	dataStartX := maxX / 4
 	if !isDetailView {
 		dataStartX = maxX / 2
