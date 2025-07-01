@@ -13,6 +13,11 @@ func Layout(g *gocui.Gui, m *model.LazyDBState, connection *postgres.DatabaseCon
 	isDataViewSelected := currentView != nil && currentView.Name() == "Data"
 	isDetailView := isTablesViewSelected || isDataViewSelected || m.InDetailView
 
+	g.SelFgColor = gocui.ColorYellow
+	g.Highlight = true
+
+	g.FgColor = gocui.ColorWhite
+	g.BgColor = gocui.ColorBlack
 	m.InDetailView = isDetailView
 	if !isDetailView {
 		if v, err := g.SetView("Connections", 0, 0, maxX/4, maxY-1); err != nil {
