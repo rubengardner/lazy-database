@@ -169,7 +169,7 @@ func Keybindings(g *gocui.Gui, m *model.LazyDBState, connection *postgres.Databa
 	}
 
 	if err := g.SetKeybinding("Data", 'f', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
-		return ShowInputPopup(g, "Query", "Enter SQL Query", func(input string) error {
+		return ShowInputPopup(g, "Query", "Enter SQL Query", "", func(input string) error {
 			if input != "" {
 				tableName := m.Tables[m.TablesCursor]
 				tableData, err := connection.GetTableData(tableName, input)
@@ -195,10 +195,8 @@ func Keybindings(g *gocui.Gui, m *model.LazyDBState, connection *postgres.Databa
 
 	if err := g.SetKeybinding("Data", 'y', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		if len(m.TableData) > 0 && m.DataCursorRow < len(m.TableData) && m.DataCursorCol < len(m.TableData[m.DataCursorRow]) {
-			// Get the current cell value
 			cellValue := m.TableData[m.DataCursorRow][m.DataCursorCol]
 
-			// Use the system's command to copy to clipboard directly
 			cmd := exec.Command("sh", "-c", fmt.Sprintf("echo '%s' | pbcopy", cellValue))
 			err := cmd.Run()
 			if err != nil {
@@ -221,7 +219,51 @@ func Keybindings(g *gocui.Gui, m *model.LazyDBState, connection *postgres.Databa
 	}); err != nil {
 		return err
 	}
+	if err := g.SetKeybinding("Data", 'e', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		if len(m.TableData) > 0 && m.DataCursorRow < len(m.TableData) && m.DataCursorCol < len(m.TableData[m.DataCursorRow]) {
+			cellValue := m.TableData[m.DataCursorRow][m.DataCursorCol]
+			columnName := m.TableData[0][m.DataCursorCol]
+			tableName := m.Tables[m.TablesCursor]
 
+			return ShowInputPopup(g, "Edit Value", fmt.Sprintf("Edit value for %s", columnName), cellValue, func(input string) error {
+				if input != cellValue {
+					primaryKey, err := connection.GetPrimaryKeyColumn(tableName)
+					if err != nil {
+						return err
+					}
+
+					pkIndex := -1
+					for i, header := range m.TableData[0] {
+						if header == primaryKey {
+							pkIndex = i
+							break
+						}
+					}
+
+					if pkIndex == -1 {
+						return fmt.Errorf("Primary key column not found")
+					}
+
+					pkValue := m.TableData[m.DataCursorRow][pkIndex]
+
+					err = connection.UpdateTableValue(tableName, columnName, primaryKey, pkValue, input)
+					if err != nil {
+						return err
+					}
+
+					m.TableData[m.DataCursorRow][m.DataCursorCol] = input
+					updateViews(g, m, connection)
+				}
+				return nil
+			}, func() error {
+				g.SetCurrentView("Data")
+				return nil
+			})
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
 	if err := g.SetKeybinding("Tables", gocui.KeyArrowRight, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 		if _, err := g.SetCurrentView("Data"); err != nil {
 			return err

@@ -131,3 +131,41 @@ func (db *DatabaseConnection) GetTableData(tableName string, whereClause ...stri
 	}
 	return result, nil
 }
+
+func (db *DatabaseConnection) GetPrimaryKeyColumn(tableName string) (string, error) {
+	query := `
+	SELECT a.attname
+	FROM   pg_index i
+	JOIN   pg_attribute a ON a.attrelid = i.indrelid
+								AND a.attnum = ANY(i.indkey)
+	WHERE  i.indrelid = $1::regclass
+	AND    i.indisprimary;
+	`
+
+	row := db.Db.QueryRow(query, tableName)
+
+	var primaryKey string
+	err := row.Scan(&primaryKey)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", fmt.Errorf("table %s has no primary key", tableName)
+		}
+		return "", err
+	}
+
+	return primaryKey, nil
+}
+
+func (db *DatabaseConnection) UpdateTableValue(tableName, columnName, primaryKeyColumn string, primaryKeyValue interface{}, newValue interface{}) error {
+	query := fmt.Sprintf("UPDATE %s SET %s = $1 WHERE %s = $2",
+		pq.QuoteIdentifier(tableName),
+		pq.QuoteIdentifier(columnName),
+		pq.QuoteIdentifier(primaryKeyColumn))
+
+	_, err := db.Db.Exec(query, newValue, primaryKeyValue)
+	if err != nil {
+		return fmt.Errorf("failed to update value: %v", err)
+	}
+
+	return nil
+}

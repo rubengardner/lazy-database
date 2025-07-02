@@ -54,7 +54,6 @@ func createPopupView(g *gocui.Gui, x, y, width, height int, opts PopupOptions) e
 		v.Editable = false
 		fmt.Fprintln(v, opts.Message)
 
-		// If we need an input field, create it
 		if opts.InputField {
 			inputName := "popupInput"
 			inputWidth := width - 4
@@ -66,9 +65,10 @@ func createPopupView(g *gocui.Gui, x, y, width, height int, opts PopupOptions) e
 
 				inputView.Editable = true
 				inputView.Wrap = true
+				inputView.Highlight = true
+				inputView.SelBgColor = gocui.ColorWhite
+				inputView.SelFgColor = gocui.ColorBlack
 				g.SetCurrentView(inputName)
-
-				// Set keybinding for submitting input
 				if err := g.SetKeybinding(inputName, gocui.KeyEnter, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 					input := v.Buffer()
 					g.DeleteView(inputName)
@@ -155,8 +155,8 @@ func ShowConfirmPopup(g *gocui.Gui, message string, onConfirm func() error) erro
 	})
 }
 
-func ShowInputPopup(g *gocui.Gui, title, prompt string, onSubmit func(string) error, onClose func() error) error {
-	return CreatePopup(g, PopupOptions{
+func ShowInputPopup(g *gocui.Gui, title, prompt string, initialValue string, onSubmit func(string) error, onClose func() error) error {
+	opts := PopupOptions{
 		Title:      title,
 		Message:    prompt,
 		Width:      50,
@@ -165,5 +165,20 @@ func ShowInputPopup(g *gocui.Gui, title, prompt string, onSubmit func(string) er
 		InputField: true,
 		OnSubmit:   onSubmit,
 		OnClose:    onClose,
-	})
+	}
+
+	err := CreatePopup(g, opts)
+	if err != nil {
+		return err
+	}
+
+	if initialValue != "" {
+		if v, err := g.View("popupInput"); err == nil {
+			v.Clear()
+			fmt.Fprint(v, initialValue)
+			v.SetCursor(len(initialValue), 0)
+		}
+	}
+
+	return nil
 }
