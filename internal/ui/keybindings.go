@@ -2,6 +2,8 @@ package ui
 
 import (
 	"fmt"
+	"os/exec"
+	"time"
 
 	"github.com/jroimartin/gocui"
 	"github.com/rubengardner/lazy-database/backend/databases/postgres"
@@ -187,6 +189,35 @@ func Keybindings(g *gocui.Gui, m *model.LazyDBState, connection *postgres.Databa
 			g.SetCurrentView("Data")
 			return nil
 		})
+	}); err != nil {
+		return err
+	}
+
+	if err := g.SetKeybinding("Data", 'y', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+		if len(m.TableData) > 0 && m.DataCursorRow < len(m.TableData) && m.DataCursorCol < len(m.TableData[m.DataCursorRow]) {
+			// Get the current cell value
+			cellValue := m.TableData[m.DataCursorRow][m.DataCursorCol]
+
+			// Use the system's command to copy to clipboard directly
+			cmd := exec.Command("sh", "-c", fmt.Sprintf("echo '%s' | pbcopy", cellValue))
+			err := cmd.Run()
+			if err != nil {
+				return err
+			}
+
+			m.CellBlinking = true
+			updateViews(g, m, connection)
+
+			go func() {
+				time.Sleep(200 * time.Millisecond)
+				g.Update(func(g *gocui.Gui) error {
+					m.CellBlinking = false
+					updateViews(g, m, connection)
+					return nil
+				})
+			}()
+		}
+		return nil
 	}); err != nil {
 		return err
 	}

@@ -13,6 +13,7 @@ type LazyDBState struct {
 	DataCursorRow int
 	DataCursorCol int
 	InDetailView  bool
+	CellBlinking  bool
 }
 
 func NewLazyDBState() LazyDBState {
@@ -27,5 +28,6 @@ func NewLazyDBState() LazyDBState {
 		DataCursorRow: 1,
 		DataCursorCol: 0,
 		InDetailView:  false,
+		CellBlinking:  false,
 	}
 }

@@ -71,7 +71,13 @@ func updateDataView(v *gocui.View, m *model.LazyDBState) {
 
 			for j, cell := range row {
 				if i == m.DataCursorRow && j == m.DataCursorCol {
-					rowStr += fmt.Sprintf("\033[7m%-*s\033[0m  ", colWidths[j], cell)
+					if m.CellBlinking {
+						// Blinking effect (using a different color or formatting)
+						rowStr += fmt.Sprintf("\033[7;32m%-*s\033[0m  ", colWidths[j], cell)
+					} else {
+						// Normal selected cell highlighting
+						rowStr += fmt.Sprintf("\033[7m%-*s\033[0m  ", colWidths[j], cell)
+					}
 				} else {
 					rowStr += fmt.Sprintf("%-*s  ", colWidths[j], cell)
 				}
