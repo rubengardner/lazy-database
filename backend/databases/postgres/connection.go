@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/lib/pq"
 	_ "github.com/lib/pq"
 )
 
@@ -68,28 +69,28 @@ func (db *DatabaseConnection) GetAllTables() ([]string, error) {
 }
 
 type TableData struct {
-	Headers []string        // Column names
-	Rows    [][]interface{} // Row data as array of values
+	Headers []string
+	Rows    [][]interface{}
 }
 
-// GetTableData fetches all data from a given table
-// GetTableData fetches data from a given table, optionally filtered by a query
 func (db *DatabaseConnection) GetTableData(tableName string, whereClause ...string) (*TableData, error) {
-	query := fmt.Sprintf("SELECT * FROM %s", tableName)
-
-	// Apply where clause if provided
+	query := fmt.Sprintf("SELECT * FROM %s", pq.QuoteIdentifier(tableName))
 	if len(whereClause) > 0 && whereClause[0] != "" {
 		query = fmt.Sprintf("%s WHERE %s", query, whereClause[0])
 	}
-
+	query = fmt.Sprintf("%s LIMIT 50", query)
 	rows, err := db.Db.Query(query)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	// Get the column names from the result
 	columns, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+
+	columnTypes, err := rows.ColumnTypes()
 	if err != nil {
 		return nil, err
 	}
@@ -105,19 +106,28 @@ func (db *DatabaseConnection) GetTableData(tableName string, whereClause ...stri
 		for i := range columns {
 			valuePointers[i] = &values[i]
 		}
-
 		if err := rows.Scan(valuePointers...); err != nil {
 			return nil, err
 		}
 
-		// Convert the values to a slice of interfaces
 		row := make([]interface{}, len(columns))
 		for i, val := range values {
-			row[i] = val
+			if val != nil {
+				if bytes, ok := val.([]byte); ok {
+					colType := columnTypes[i].DatabaseTypeName()
+					if colType == "JSON" || colType == "JSONB" {
+						row[i] = string(bytes)
+					} else {
+						row[i] = string(bytes)
+					}
+				} else {
+					row[i] = val
+				}
+			} else {
+				row[i] = val
+			}
 		}
-
 		result.Rows = append(result.Rows, row)
 	}
-
 	return result, nil
 }
