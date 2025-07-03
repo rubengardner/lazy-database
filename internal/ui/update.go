@@ -88,7 +88,7 @@ func updateDataView(v *gocui.View, m *model.LazyDBState) {
 	}
 }
 
-func updateViews(g *gocui.Gui, m *model.LazyDBState, connection *postgres.DatabaseConnection) {
+func UpdateViews(g *gocui.Gui, m *model.LazyDBState, connection *postgres.DatabaseConnection) {
 	if v, err := g.View("Connections"); err == nil {
 		updateConnectionsView(v, m)
 	}

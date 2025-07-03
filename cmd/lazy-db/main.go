@@ -9,6 +9,7 @@ import (
 	"github.com/rubengardner/lazy-database/backend/databases/postgres"
 	"github.com/rubengardner/lazy-database/internal/model"
 	"github.com/rubengardner/lazy-database/internal/ui"
+	"github.com/rubengardner/lazy-database/internal/ui/keybindings"
 )
 
 func main() {
@@ -33,7 +34,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := ui.Keybindings(g, &m, db_connection); err != nil {
+	if err := keybindings.Keybindings(g, &m, db_connection); err != nil {
 		log.Fatal(err)
 	}
 
