@@ -5,7 +5,7 @@ import (
 	"github.com/rubengardner/lazy-database/backend/databases/postgres"
 	"github.com/rubengardner/lazy-database/internal/model"
 	"github.com/rubengardner/lazy-database/internal/ui"
-	"github.com/rubengardner/lazy-database/internal/ui/views/views"
+	"github.com/rubengardner/lazy-database/internal/ui/views"
 )
 
 func MovementTablesKeybindings(g *gocui.Gui, m *model.LazyDBState, connection *postgres.DatabaseConnection) error {

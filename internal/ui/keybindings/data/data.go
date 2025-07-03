@@ -16,5 +16,8 @@ func DataKeybindings(g *gocui.Gui, m *model.LazyDBState, connection *postgres.Da
 	if err := YankKeybinding(g, m, connection); err != nil {
 		return err
 	}
+	if err := UpdateValueDataKeybindings(g, m, connection); err != nil {
+		return err
+	}
 	return nil
 }
