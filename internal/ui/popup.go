@@ -23,15 +23,14 @@ func CreatePopup(g *gocui.Gui, opts PopupOptions) error {
 
 	width := opts.Width
 	if width <= 0 {
-		width = 40 // default width
+		width = 40
 	}
 
 	height := opts.Height
 	if height <= 0 {
-		height = 6 // default height
+		height = 6
 	}
 
-	// Calculate position for centering if requested
 	x, y := 0, 0
 	if opts.Centered {
 		x = (maxX - width) / 2
@@ -42,7 +41,7 @@ func CreatePopup(g *gocui.Gui, opts PopupOptions) error {
 }
 
 func createPopupView(g *gocui.Gui, x, y, width, height int, opts PopupOptions) error {
-	// Create popup view
+	g.DeleteKeybinding("", gocui.KeyEsc, gocui.ModNone)
 	popupName := "popup"
 	if v, err := g.SetView(popupName, x, y, x+width, y+height); err != nil {
 		if err != gocui.ErrUnknownView {
@@ -69,7 +68,7 @@ func createPopupView(g *gocui.Gui, x, y, width, height int, opts PopupOptions) e
 				inputView.SelBgColor = gocui.ColorWhite
 				inputView.SelFgColor = gocui.ColorBlack
 				g.SetCurrentView(inputName)
-				if err := g.SetKeybinding(inputName, gocui.KeyEnter, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+				if err := g.SetKeybinding(inputName, gocui.KeyCtrlQ, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 					input := v.Buffer()
 					g.DeleteView(inputName)
 					g.DeleteView(popupName)
@@ -82,7 +81,7 @@ func createPopupView(g *gocui.Gui, x, y, width, height int, opts PopupOptions) e
 					return err
 				}
 
-				if err := g.SetKeybinding(inputName, 'q', gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+				if err := g.SetKeybinding(inputName, gocui.KeyCtrlQ, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
 					g.DeleteView(inputName)
 					g.DeleteView(popupName)
 
@@ -97,6 +96,7 @@ func createPopupView(g *gocui.Gui, x, y, width, height int, opts PopupOptions) e
 		}
 
 		if err := g.SetKeybinding(popupName, gocui.KeyEsc, gocui.ModNone, func(g *gocui.Gui, v *gocui.View) error {
+			fmt.Printf("DEBUG: Escape key pressed on popup\n")
 			if opts.InputField {
 				g.DeleteView("popupInput")
 			}
