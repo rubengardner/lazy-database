@@ -1,11 +1,5 @@
 # 🧰 Lazy Database CLI
 
-[![GitHub stars](https://img.shields.io/github/stars/rubengardner/lazy-database?style=for-the-badge)](https://github.com/rubengardner/lazy-database/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/rubengardner/lazy-database?style=for-the-badge)](https://github.com/rubengardner/lazy-database/network/members)
-[![MIT License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
-
----
-
 ## 🧠 What is Lazy Database?
 
 Lazy Database is a lightweight, terminal-based TUI tool built in Go, designed to simplify your database interactions directly from the command line. Currently, it supports **PostgreSQL** with a flexible architecture that makes it easy to add support for other databases in the future.
@@ -28,4 +22,10 @@ This project is a work in progress, aiming to provide a clean, intuitive interfa
 I’m actively looking to team up with an experienced Go developer to help accelerate development, design new features, and polish the user experience.
 
 Feel free to reach out directly — I’d love to hear from you!
+
+---
+---
+
+[![MIT License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+
 
