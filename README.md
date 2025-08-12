@@ -31,9 +31,6 @@ Feel free to reach out directly — I’d love to hear from you!
 ### Main Table
 <img width="2888" height="460" alt="image" src="https://github.com/user-attachments/assets/587e005f-f887-426e-92c0-90f4fc6ad7e0" />
 
-### Edit data
-<img width="1064" height="494" alt="image" src="https://github.com/user-attachments/assets/be7aa9fa-0575-451a-bead-01d26b6782ff" />
-
 
 ---
 
